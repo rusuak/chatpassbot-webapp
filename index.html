@@ -6,26 +6,29 @@
 <script>
   function run() {
     const wa = window.Telegram?.WebApp;
-    // Если открыли вне Telegram, покажем подсказку
     if (!wa) {
-      document.getElementById('status').textContent =
-        "Open this page via Telegram WebApp link.";
+      document.getElementById('status').textContent = "Open this page via Telegram WebApp link.";
       return;
     }
     try {
-      wa.expand(); // косметика
-      // Берём start_param, который приходит из ?startapp=...
-      const startParam = wa.initDataUnsafe?.start_param || "";
-      const org = startParam.startsWith("org:") ? startParam.slice(4) : startParam;
+      wa.ready();
+      wa.expand();
 
-      // Отправляем данные боту через Telegram (без обращений к вашему серверу)
+      const sp = new URLSearchParams(location.search);
+      const fromQuery = sp.get("org") || "";
+
+      // При запуске через startapp (NOT для клавиатуры) start_param попадёт сюда:
+      const startParam = wa.initDataUnsafe?.start_param || "";
+
+      let org = startParam && startParam.startsWith("org:") ? startParam.slice(4) : startParam;
+      if (!org) org = fromQuery; // для клавиатуры пробрасываем ?org=<slug>
+
+      // Отправляем данные боту (только для KeyboardButton это реально доставится)
       wa.sendData(JSON.stringify({ t: "open_org", org }));
 
-      // Закрываем WebApp — бот пришлёт список событий в чат
       setTimeout(() => wa.close(), 100);
     } catch (e) {
-      document.getElementById('status').textContent =
-        "Could not open. Please return to the chat and try again.";
+      document.getElementById('status').textContent = "Could not open. Please return to the chat and try again.";
     }
   }
   window.addEventListener('load', run);
